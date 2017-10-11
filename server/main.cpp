@@ -1,157 +1,96 @@
 #include <iostream>
-#include <sstream>
-#include <string>
+#include <ws2tcpip.h>
+#include <inaddr.h>
 
-// Для корректной работы freeaddrinfo в MinGW
-// Подробнее: http://stackoverflow.com/a/20306451
-//#define _WIN32_WINNT 0x501
+#pragma comment(lib, "ws_32.lib")
 
-#include <WinSock2.h>
-#include <WS2tcpip.h>
+using namespace std;
 
-// Необходимо, чтобы линковка происходила с DLL-библиотекой
-// Для работы с сокетам
-#pragma comment(lib, "Ws2_32.lib")
+int main() {
 
-using std::cerr;
+    //Initialize winsock
+    WSADATA wsData;
+    WORD version = MAKEWORD(2, 2);
 
-int main()
-{
-    WSADATA wsaData; // служебная структура для хранение информации
-    // о реализации Windows Sockets
-    // старт использования библиотеки сокетов процессом
-    // (подгружается Ws2_32.dll)
-    int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
-
-    // Если произошла ошибка подгрузки библиотеки
-    if (result != 0) {
-        cerr << "WSAStartup failed: " << result << "\n";
-        return result;
+    int wsaStartup = WSAStartup(version, &wsData);
+    if (wsaStartup != 0) {
+        cerr << "Can't initialize winsock!" << endl;
+        return -1;
     }
 
-    struct addrinfo* addr = NULL; // структура, хранящая информацию
-    // об IP-адресе  слущающего сокета
-
-    // Шаблон для инициализации структуры адреса
-    struct addrinfo hints;
-    ZeroMemory(&hints, sizeof(hints));
-
-    hints.ai_family = AF_INET; // AF_INET определяет, что будет
-    // использоваться сеть для работы с сокетом
-    hints.ai_socktype = SOCK_STREAM; // Задаем потоковый тип сокета
-    hints.ai_protocol = IPPROTO_TCP; // Используем протокол TCP
-    hints.ai_flags = AI_PASSIVE; // Сокет будет биндиться на адрес,
-    // чтобы принимать входящие соединения
-
-    // Инициализируем структуру, хранящую адрес сокета - addr
-    // Наш HTTP-сервер будет висеть на 8000-м порту локалхоста
-    result = getaddrinfo("127.0.0.1", "8000", &hints, &addr);
-
-    // Если инициализация структуры адреса завершилась с ошибкой,
-    // выведем сообщением об этом и завершим выполнение программы
-    if (result != 0) {
-        cerr << "getaddrinfo failed: " << result << "\n";
-        WSACleanup(); // выгрузка библиотеки Ws2_32.dll
-        return 1;
+    //Create a socket
+    SOCKET listeningSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (listeningSocket == INVALID_SOCKET) {
+        cerr << "Can't create a socket" << endl;
+        return -1;
     }
 
-    // Создание сокета
-    int listen_socket = socket(addr->ai_family, addr->ai_socktype,
-                               addr->ai_protocol);
-    // Если создание сокета завершилось с ошибкой, выводим сообщение,
-    // освобождаем память, выделенную под структуру addr,
-    // выгружаем dll-библиотеку и закрываем программу
-    if (listen_socket == INVALID_SOCKET) {
-        cerr << "Error at socket: " << WSAGetLastError() << "\n";
-        freeaddrinfo(addr);
-        WSACleanup();
-        return 1;
+    //Bind the ip address and port to a socket
+    sockaddr_in hint;
+    hint.sin_family = AF_INET;
+    hint.sin_port = htons(5223);
+    hint.sin_addr.S_un.S_addr = INADDR_ANY;
+
+    bind(listeningSocket, (sockaddr*) &hint, sizeof(hint));
+
+    //Tell the socket to listen for incoming connections
+    listen(listeningSocket, SOMAXCONN);
+
+    //Wait for a connection
+    sockaddr_in client;
+    int clientSize = sizeof(client);
+
+    SOCKET  clientSocket = accept(listeningSocket, (sockaddr*) &client, &clientSize);
+    if (clientSocket == INVALID_SOCKET) {
+        cerr << "Client could't connect" << endl;
+        return -1;
     }
 
-    // Привязываем сокет к IP-адресу
-    result = bind(listen_socket, addr->ai_addr, (int)addr->ai_addrlen);
+    char host[NI_MAXHOST];
+    char service[NI_MAXSERV];
 
-    // Если привязать адрес к сокету не удалось, то выводим сообщение
-    // об ошибке, освобождаем память, выделенную под структуру addr.
-    // и закрываем открытый сокет.
-    // Выгружаем DLL-библиотеку из памяти и закрываем программу.
-    if (result == SOCKET_ERROR) {
-        cerr << "bind failed with error: " << WSAGetLastError() << "\n";
-        freeaddrinfo(addr);
-        closesocket(listen_socket);
-        WSACleanup();
-        return 1;
+    ZeroMemory(host, NI_MAXHOST);
+    ZeroMemory(service, NI_MAXSERV);
+
+    if (getnameinfo((sockaddr*) &client, sizeof(client), host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) {
+        cout << host << " connected on port " << service << endl;
+    }
+    else {
+        //TODO
     }
 
-    // Инициализируем слушающий сокет
-    if (listen(listen_socket, SOMAXCONN) == SOCKET_ERROR) {
-        cerr << "listen failed with error: " << WSAGetLastError() << "\n";
-        closesocket(listen_socket);
-        WSACleanup();
-        return 1;
-    }
+    //Close listening socket
+    closesocket(listeningSocket);
 
-    // Принимаем входящие соединения
-    int client_socket = accept(listen_socket, NULL, NULL);
-    if (client_socket == INVALID_SOCKET) {
-        cerr << "accept failed: " << WSAGetLastError() << "\n";
-        closesocket(listen_socket);
-        WSACleanup();
-        return 1;
-    }
+    //While loop: accept and echo message back to client
+    char buffer[5000];
 
-    const int max_client_buffer_size = 1024;
-    char buf[max_client_buffer_size];
+    while(true) {
+        ZeroMemory(buffer, 5000);
 
-    result = recv(client_socket, buf, max_client_buffer_size, 0);
-
-    std::stringstream response; // сюда будет записываться ответ клиенту
-    std::stringstream response_body; // тело ответа
-
-    if (result == SOCKET_ERROR) {
-        // ошибка получения данных
-        cerr << "recv failed: " << result << "\n";
-        closesocket(client_socket);
-    } else if (result == 0) {
-        // соединение закрыто клиентом
-        cerr << "connection closed...\n";
-    } else if (result > 0) {
-        // Мы знаем фактический размер полученных данных, поэтому ставим метку конца строки
-        // В буфере запроса.
-        buf[result] = '\0';
-
-        // Данные успешно получены
-        // формируем тело ответа (HTML)
-        response_body << "<title>Test C++ HTTP Server</title>\n"
-                      << "<h1>Test page</h1>\n"
-                      << "<p>This is body of the test page...</p>\n"
-                      << "<h2>Request headers</h2>\n"
-                      << "<pre>" << buf << "</pre>\n"
-                      << "<em><small>Test C++ Http Server</small></em>\n";
-
-        // Формируем весь ответ вместе с заголовками
-        response << "HTTP/1.1 200 OK\r\n"
-                 << "Version: HTTP/1.1\r\n"
-                 << "Content-Type: text/html; charset=utf-8\r\n"
-                 << "Content-Length: " << response_body.str().length()
-                 << "\r\n\r\n"
-                 << response_body.str();
-
-        // Отправляем ответ клиенту с помощью функции send
-        result = send(client_socket, response.str().c_str(),
-                      response.str().length(), 0);
-
-        if (result == SOCKET_ERROR) {
-            // произошла ошибка при отправле данных
-            cerr << "send failed: " << WSAGetLastError() << "\n";
+        //Wait for client to send data
+        int bytesReceived = recv(clientSocket, buffer, 5000, 0);
+        if (bytesReceived == SOCKET_ERROR) {
+            cerr << "Error in recv()" << endl;
+            break;
         }
-        // Закрываем соединение к клиентом
-        closesocket(client_socket);
+
+        if (bytesReceived == 0) {
+            cout << "Client disconnected" << endl;
+            break;
+        }
+
+        //Echo message back to client
+        send(clientSocket, buffer, bytesReceived + 1, 0);
+
+
     }
 
-    // Убираем за собой
-    closesocket(listen_socket);
-    freeaddrinfo(addr);
+    //Close the socket
+    closesocket(listeningSocket);
+
+    //Cleanup winsock
     WSACleanup();
+
     return 0;
 }
