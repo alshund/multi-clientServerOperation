@@ -1,10 +1,19 @@
 #include <iostream>
 #include <ws2tcpip.h>
+#include <pthread.h>
+#include <mutex>
 #include <inaddr.h>
 
 #pragma comment(lib, "ws_32.lib")
 
 using namespace std;
+
+void* clientProcessing(void *data) {
+    while(true) {
+        Sleep(1000);
+        cout << pthread_self() << endl;
+    }
+}
 
 int main() {
 
@@ -36,61 +45,78 @@ int main() {
     //Tell the socket to listen for incoming connections
     listen(listeningSocket, SOMAXCONN);
 
-    //Wait for a connection
-    sockaddr_in client;
-    int clientSize = sizeof(client);
-
-    SOCKET  clientSocket = accept(listeningSocket, (sockaddr*) &client, &clientSize);
-    if (clientSocket == INVALID_SOCKET) {
-        cerr << "Client could't connect" << endl;
-        return -1;
-    }
-
-    char host[NI_MAXHOST];
-    char service[NI_MAXSERV];
-
-    ZeroMemory(host, NI_MAXHOST);
-    ZeroMemory(service, NI_MAXSERV);
-
-    if (getnameinfo((sockaddr*) &client, sizeof(client), host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) {
-        cout << host << " connected on port " << service << endl;
-    }
-    else {
-        //TODO
-    }
-
-    //Close listening socket
-    closesocket(listeningSocket);
-
-    //While loop: accept and echo message back to client
-    char buffer[5000];
-
-    while(true) {
-        ZeroMemory(buffer, 5000);
-
-        //Wait for client to send data
-        int bytesReceived = recv(clientSocket, buffer, 5000, 0);
-        if (bytesReceived == SOCKET_ERROR) {
-            cerr << "Error in recv()" << endl;
-            break;
+    while (true) {
+        //Wat for a connection
+        sockaddr_in clientHint;
+        int clientHintSize = sizeof(clientHint);
+        SOCKET  clientSocket = accept(listeningSocket, (sockaddr*) &clientHint, &clientHintSize);
+        if (clientSocket == INVALID_SOCKET) {
+            cerr << "Client could'n connect, Err #" << WSAGetLastError() << endl;
         }
 
-        if (bytesReceived == 0) {
-            cout << "Client disconnected" << endl;
-            break;
-        }
-
-        //Echo message back to client
-        send(clientSocket, buffer, bytesReceived + 1, 0);
-
-
+        pthread_t thread;
+        pthread_create(&thread, NULL, clientProcessing, &thread);
     }
 
-    //Close the socket
-    closesocket(listeningSocket);
+
 
     //Cleanup winsock
     WSACleanup();
 
     return 0;
 }
+
+
+
+//    //Wait for a connection
+//    sockaddr_in client;
+//    int clientSize = sizeof(client);
+//
+//    SOCKET  clientSocket = accept(listeningSocket, (sockaddr*) &client, &clientSize);
+//    if (clientSocket == INVALID_SOCKET) {
+//        cerr << "Client could't connect" << endl;
+//        return -1;
+//    }
+//
+//    char host[NI_MAXHOST];
+//    char service[NI_MAXSERV];
+//
+//    ZeroMemory(host, NI_MAXHOST);
+//    ZeroMemory(service, NI_MAXSERV);
+//
+//    if (getnameinfo((sockaddr*) &client, sizeof(client), host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) {
+//        cout << host << " connected on port " << service << endl;
+//    }
+//    else {
+//        //TODO
+//    }
+//
+//    //Close listening socket
+//    closesocket(listeningSocket);
+//
+//    //While loop: accept and echo message back to client
+//    char buffer[5000];
+//
+//    while(true) {
+//        ZeroMemory(buffer, 5000);
+//
+//        //Wait for client to send data
+//        int bytesReceived = recv(clientSocket, buffer, 5000, 0);
+//        if (bytesReceived == SOCKET_ERROR) {
+//            cerr << "Error in recv()" << endl;
+//            break;
+//        }
+//
+//        if (bytesReceived == 0) {
+//            cout << "Client disconnected" << endl;
+//            break;
+//        }
+//
+//        //Echo message back to client
+//        send(clientSocket, buffer, bytesReceived + 1, 0);
+//
+//
+//    }
+//
+//    //Close the socket
+//    closesocket(listeningSocket);
