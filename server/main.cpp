@@ -1,68 +1,101 @@
 #include <iostream>
 #include <ws2tcpip.h>
-#include <pthread.h>
-#include <mutex>
-#include <inaddr.h>
+#include <thread>
 
 #pragma comment(lib, "ws_32.lib")
 
 using namespace std;
 
-void* clientProcessing(void *data) {
-    while(true) {
-        Sleep(1000);
-        cout << pthread_self() << endl;
+
+class Connection {
+    //TODO: add ref to server in order to get collection
+    SOCKET clientSocket;
+public:
+    Connection(SOCKET clientSocket) : clientSocket(clientSocket) {}
+
+public:
+    void clientProcessing() {
+
+        while (true) {
+            char buffer[5000];
+            // string buffer;
+            int bytesReceived = recv(clientSocket, buffer, 5000, 0);
+
+            if (bytesReceived == SOCKET_ERROR) {
+                cerr << "Error in recv()" << endl;
+            }
+//
+            if (bytesReceived == 0) {
+                cout << "Client disconnected" << endl;
+                break;
+            }
+            cout << "Client> " << string(buffer, 0, bytesReceived) << endl;
+            //Echo message back to client
+            send(clientSocket, buffer, bytesReceived + 1, 0);
+        }
+//    while(true) {
+//        Sleep(1000);
+//        cout << "1" << endl;
+//    }
     }
-}
+};
 
-int main() {
-
-    //Initialize winsock
+class Server {
+    //TODO: add collection here
+private:
     WSADATA wsData;
     WORD version = MAKEWORD(2, 2);
+    SOCKET listeningSocket;
 
-    int wsaStartup = WSAStartup(version, &wsData);
-    if (wsaStartup != 0) {
-        cerr << "Can't initialize winsock!" << endl;
-        return -1;
-    }
-
-    //Create a socket
-    SOCKET listeningSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (listeningSocket == INVALID_SOCKET) {
-        cerr << "Can't create a socket" << endl;
-        return -1;
-    }
-
-    //Bind the ip address and port to a socket
-    sockaddr_in hint;
-    hint.sin_family = AF_INET;
-    hint.sin_port = htons(5223);
-    hint.sin_addr.S_un.S_addr = INADDR_ANY;
-
-    bind(listeningSocket, (sockaddr*) &hint, sizeof(hint));
-
-    //Tell the socket to listen for incoming connections
-    listen(listeningSocket, SOMAXCONN);
-
-    while (true) {
-        //Wat for a connection
-        sockaddr_in clientHint;
-        int clientHintSize = sizeof(clientHint);
-        SOCKET  clientSocket = accept(listeningSocket, (sockaddr*) &clientHint, &clientHintSize);
-        if (clientSocket == INVALID_SOCKET) {
-            cerr << "Client could'n connect, Err #" << WSAGetLastError() << endl;
+    void adjust() {
+        int wsaStartup = WSAStartup(version, &wsData);
+        if (wsaStartup != 0) {
+            cerr << "Can't initialize winsock!" << endl;
         }
 
-        pthread_t thread;
-        pthread_create(&thread, NULL, clientProcessing, &thread);
+        //Create a socket
+        listeningSocket = socket(AF_INET, SOCK_STREAM, 0);
+        if (listeningSocket == INVALID_SOCKET) {
+            cerr << "Can't create a socket" << endl;
+        }
+
+        //Bind the ip address and port to a socket
+        sockaddr_in hint;
+        hint.sin_family = AF_INET;
+        hint.sin_port = htons(5223);
+        hint.sin_addr.S_un.S_addr = INADDR_ANY;
+
+        bind(listeningSocket, (sockaddr *) &hint, sizeof(hint));
+
+        //Tell the socket to listen for incoming connections
+        listen(listeningSocket, SOMAXCONN);
     }
 
+public:
+    void start() {
+        adjust();
+        while (true) {
+            //Wat for a connection
+            sockaddr_in clientHint;
+            int clientHintSize = sizeof(clientHint);
+            SOCKET clientSocket = accept(listeningSocket, (sockaddr *) &clientHint, &clientHintSize);
+            if (clientSocket == INVALID_SOCKET) {
+                cerr << "Client could'n connect, Err #" << WSAGetLastError() << endl;
+            }
 
+//        pthread_t thread;
+//        pthread_create(&thread, NULL, clientProcessing, &thread);
+            Connection *connection = new Connection(clientSocket);
+            thread t1(&Connection::clientProcessing,ref(connection));
+            t1.join();
+        }
+        WSACleanup();
+    }
+};
 
-    //Cleanup winsock
-    WSACleanup();
-
+int main() {
+    Server *server = new Server();
+    server->start();
     return 0;
 }
 
@@ -88,7 +121,6 @@ int main() {
 //        cout << host << " connected on port " << service << endl;
 //    }
 //    else {
-//        //TODO
 //    }
 //
 //    //Close listening socket
