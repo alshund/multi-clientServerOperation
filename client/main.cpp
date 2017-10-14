@@ -61,18 +61,6 @@ int main() {
         return -1;
     }
 
-
-
-    //Send text
-//    int index = 0;
-//    while (index != 100) {
-//        int random = getRandomSleepTime();
-//        if (random < 2000 && random > 10000) {
-//            cout << "ERROR" << endl;
-//
-//        }
-//        index++;
-//    }
     int random = getRandomSleepTime();
     cout << random << endl;
     sleep(getRandomSleepTime());

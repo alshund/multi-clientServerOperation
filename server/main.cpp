@@ -1,15 +1,16 @@
 #include <iostream>
 #include <ws2tcpip.h>
 #include <thread>
-#include <inaddr.h>
+#include <functional>
+#include <sstream>
 #include <vector>
 #include <mutex>
-#include <sstream>
 
 #pragma comment(lib, "ws_32.lib")
 
 using namespace std;
 
+BOOL WINAPI ConsoleHandler(DWORD);
 
 class Connection {
 private:
@@ -23,7 +24,9 @@ public:
                                                                               address(address), buffer(buffer) {}
 public:
     void clientProcessing() {
-        addConnectionMessage();
+        string tmp = "[" + getStringId() + "]: accept new client " + getStringAddress() + "\n";
+        cout << tmp;
+        addMessage(tmp);
         while (true) {
             string stringBuffer;
 
@@ -36,10 +39,12 @@ public:
             }
 //
             if (bytesReceived == 0) {
-                cout << "[" << this_thread::get_id() << "]: client " << address << " disconnected" << endl;
+                tmp =  "[" + getStringId() + "]: client " + getStringAddress() + " disconnected\n";
+                cout<<tmp;
+                addMessage(tmp);
                 break;
             }
-            cout << "Client> " << string(buffer, 0, bytesReceived) << endl;
+            cout << "[" + getStringId() + "]:" << string(buffer, 0, bytesReceived) << endl;
             //Echo message back to client
             send(clientSocket, buffer, bytesReceived + 1, 0);
         }
@@ -50,15 +55,10 @@ public:
 //    }
     }
 private:
-    void addConnectionMessage() {
-        bufferMutex.lock();
-        buffer.push_back(getConnectMessage());
-        bufferMutex.unlock();
-    }
-
-    string getConnectMessage() {
-        string connectMessage = "[" + getStringId() + "]: accept new client " + getStringAddress() + "\n";
-        return connectMessage;
+    void addMessage(string message) {
+            bufferMutex.lock();
+            buffer.push_back(message);
+            bufferMutex.unlock();
     }
 
     string getStringAddress() {
@@ -117,72 +117,24 @@ public:
                 cerr << "Client could'n connect, Err #" << WSAGetLastError() << endl;
             }
 
-//        pthread_t thread;
-//        pthread_create(&thread, NULL, clientProcessing, &thread);
             Connection *connection = new Connection(clientSocket, clientHint.sin_addr.S_un.S_addr, buffer);
             thread t1(&Connection::clientProcessing,ref(connection));
             t1.join();
         }
         WSACleanup();
     }
+
 };
 
+Server *server = new Server();
+void my_handler (int param)
+{
+    delete server;
+    system("Pause");
+    exit(0);
+}
 int main() {
-    Server *server = new Server();
+    signal(SIGINT, my_handler);
     server->start();
     return 0;
 }
-
-
-
-//    //Wait for a connection
-//    sockaddr_in client;
-//    int clientSize = sizeof(client);
-//
-//    SOCKET  clientSocket = accept(listeningSocket, (sockaddr*) &client, &clientSize);
-//    if (clientSocket == INVALID_SOCKET) {
-//        cerr << "Client could't connect" << endl;
-//        return -1;
-//    }
-//
-//    char host[NI_MAXHOST];
-//    char service[NI_MAXSERV];
-//
-//    ZeroMemory(host, NI_MAXHOST);
-//    ZeroMemory(service, NI_MAXSERV);
-//
-//    if (getnameinfo((sockaddr*) &client, sizeof(client), host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) {
-//        cout << host << " connected on port " << service << endl;
-//    }
-//    else {
-//    }
-//
-//    //Close listening socket
-//    closesocket(listeningSocket);
-//
-//    //While loop: accept and echo message back to client
-//    char buffer[5000];
-//
-//    while(true) {
-//        ZeroMemory(buffer, 5000);
-//
-//        //Wait for client to send data
-//        int bytesReceived = recv(clientSocket, buffer, 5000, 0);
-//        if (bytesReceived == SOCKET_ERROR) {
-//            cerr << "Error in recv()" << endl;
-//            break;
-//        }
-//
-//        if (bytesReceived == 0) {
-//            cout << "Client disconnected" << endl;
-//            break;
-//        }
-//
-//        //Echo message back to client
-//        send(clientSocket, buffer, bytesReceived + 1, 0);
-//
-//
-//    }
-//
-//    //Close the socket
-//    closesocket(listeningSocket);
