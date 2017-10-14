@@ -37,7 +37,7 @@ public:
             if (bytesReceived == SOCKET_ERROR) {
                 cerr << "Error in recv()" << endl;
             }
-//
+
             if (bytesReceived == 0) {
                 tmp =  "[" + getStringId() + "]: client " + getStringAddress() + " disconnected\n";
                 cout<<tmp;
