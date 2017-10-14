@@ -19,6 +19,7 @@ private:
     unsigned long address;
     vector<string> &buffer;
     string thread_id;
+    bool isActive = true;
 public:
 
     Connection(SOCKET clientSocket, u_long address, vector<string> &buffer) : clientSocket(clientSocket),
@@ -46,10 +47,12 @@ public:
             }
 
             if (bytesReceived == 0) {
+                isActive = false;
+                TerminateThread(reinterpret_cast<HANDLE>(t1.native_handle()), 0);
                 tmp = "[" + getStringId() + "]: client " + getStringAddress() + " disconnected\n";
                 cout << tmp;
                 addMessage(tmp);
-                //TODO: terminate t1 thread here
+                delete this;
                 break;
             }
             cout << "[" + getStringId() + "]:" << string(buffer, 0, bytesReceived) << endl;
@@ -59,11 +62,11 @@ public:
     }
 
     void timer() {
-        while (true) {
-            Sleep(1000);
+        while (isActive) {
             string tmp = "[" + this->thread_id + "]: idle\n";
             cout << tmp;
             addMessage(tmp);
+            Sleep(1000);
         }
     }
 
