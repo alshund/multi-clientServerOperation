@@ -3,8 +3,8 @@
 #include <thread>
 #include <inaddr.h>
 #include <vector>
-#include <hash_map>
-#include <map>
+#include <mutex>
+#include <sstream>
 
 #pragma comment(lib, "ws_32.lib")
 
@@ -12,16 +12,18 @@ using namespace std;
 
 
 class Connection {
-
+private:
     SOCKET clientSocket;
-    u_long address;
+    unsigned long address;
+    vector <string> &buffer;
+    mutex bufferMutex;
 public:
 
-    Connection(SOCKET clientSocket, u_long address) : clientSocket(clientSocket), address(address) {}
-
+    Connection(SOCKET clientSocket, u_long address, vector<string> &buffer) : clientSocket(clientSocket),
+                                                                              address(address), buffer(buffer) {}
 public:
     void clientProcessing() {
-
+        addConnectionMessage();
         while (true) {
             string stringBuffer;
 
@@ -41,10 +43,34 @@ public:
             //Echo message back to client
             send(clientSocket, buffer, bytesReceived + 1, 0);
         }
+
 //    while(true) {
 //        Sleep(1000);
 //        cout << "1" << endl;
 //    }
+    }
+private:
+    void addConnectionMessage() {
+        bufferMutex.lock();
+        buffer.push_back(getConnectMessage());
+        bufferMutex.unlock();
+    }
+
+    string getConnectMessage() {
+        string connectMessage = "[" + getStringId() + "]: accept new client " + getStringAddress() + "\n";
+        return connectMessage;
+    }
+
+    string getStringAddress() {
+        stringstream stringStream;
+        stringStream << address;
+        return stringStream.str();
+    }
+
+    string getStringId() {
+        stringstream stringStream;
+        stringStream << this_thread::get_id();
+        return stringStream.str();
     }
 };
 
@@ -93,7 +119,7 @@ public:
 
 //        pthread_t thread;
 //        pthread_create(&thread, NULL, clientProcessing, &thread);
-            Connection *connection = new Connection(clientSocket, clientHint.sin_addr.S_un.S_addr);
+            Connection *connection = new Connection(clientSocket, clientHint.sin_addr.S_un.S_addr, buffer);
             thread t1(&Connection::clientProcessing,ref(connection));
             t1.join();
         }
@@ -101,16 +127,9 @@ public:
     }
 };
 
-void kek(vector< map <u_long, string> > buffer) {
-    string line = "mamapapaprivet";
-    buffer[]
-}
-
 int main() {
-//    Server *server = new Server();
-//    server->start();
-    vector < map < u_long, string > > buffer;
-
+    Server *server = new Server();
+    server->start();
     return 0;
 }
 

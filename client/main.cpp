@@ -1,5 +1,7 @@
 #include <iostream>
 #include <winsock2.h>
+#include <time.h>
+#include <zconf.h>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -7,6 +9,11 @@ using namespace std;
 
 const char *ar[] = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s",
                     "t", "u", "v", "w", "x", "y", "z"};
+
+int getRandomSleepTime() {
+    int sleepTime = rand() % 10 + 2;
+    return sleepTime;
+}
 
 int main() {
     string ipAddress = "127.0.0.1";
@@ -35,6 +42,17 @@ int main() {
     hint.sin_port = htons(port);
     hint.sin_addr.S_un.S_addr = inet_addr(ipAddress.c_str());
 
+
+    //Do-while loop to send and receive data
+    char buffer[5000];
+    string userInput;
+
+
+    srand(time(NULL));
+    int n = rand() % 100;
+    for (int i = 0; i < n; i++) userInput += ar[rand() % (sizeof ar / sizeof(char *))];
+    userInput += "\0";
+
     //Connect to server
     int connectResult = connect(clientSocket, (sockaddr *) &hint, sizeof(hint));
     if (connectResult == SOCKET_ERROR) {
@@ -43,17 +61,21 @@ int main() {
         return -1;
     }
 
-    //Do-while loop to send and receive data
-    char buffer[5000];
-    string userInput;
 
-
-    int n = rand() % 100;
-    for (int i = 0; i < n; i++) userInput += ar[rand() % (sizeof ar / sizeof(char *))];
-    userInput += "\0";
 
     //Send text
-    // _sleep(4000);
+//    int index = 0;
+//    while (index != 100) {
+//        int random = getRandomSleepTime();
+//        if (random < 2000 && random > 10000) {
+//            cout << "ERROR" << endl;
+//
+//        }
+//        index++;
+//    }
+    int random = getRandomSleepTime();
+    cout << random << endl;
+    sleep(getRandomSleepTime());
     cout << userInput << endl;
 
     int sendResult = send(clientSocket, userInput.c_str(), userInput.size() + 1, 0);
@@ -64,7 +86,7 @@ int main() {
         int byteReceived = recv(clientSocket, buffer, 5000, 0);
         if (byteReceived > 0) {
             //Echo response to console
-            cout << "SERVER> " << string(buffer, 0, byteReceived) << endl;
+            cout << "SERVER > " << string(buffer, 0, byteReceived) << endl;
         }
     }
 
