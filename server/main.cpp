@@ -12,21 +12,28 @@ using namespace std;
 
 BOOL WINAPI ConsoleHandler(DWORD);
 
+
 class Connection {
 private:
     SOCKET clientSocket;
     unsigned long address;
-    vector <string> &buffer;
-    mutex bufferMutex;
+    vector<string> &buffer;
+    string thread_id;
 public:
 
     Connection(SOCKET clientSocket, u_long address, vector<string> &buffer) : clientSocket(clientSocket),
-                                                                              address(address), buffer(buffer) {}
+                                                                              address(address), buffer(buffer) {
+    }
+
+    mutex bufferMutex;
 public:
     void clientProcessing() {
         string tmp = "[" + getStringId() + "]: accept new client " + getStringAddress() + "\n";
         cout << tmp;
         addMessage(tmp);
+        this->thread_id = getStringId();
+        thread t1(&Connection::timer, this);
+        t1.detach();
         while (true) {
             string stringBuffer;
 
@@ -39,26 +46,32 @@ public:
             }
 
             if (bytesReceived == 0) {
-                tmp =  "[" + getStringId() + "]: client " + getStringAddress() + " disconnected\n";
-                cout<<tmp;
+                tmp = "[" + getStringId() + "]: client " + getStringAddress() + " disconnected\n";
+                cout << tmp;
                 addMessage(tmp);
+                //TODO: terminate t1 thread here
                 break;
             }
             cout << "[" + getStringId() + "]:" << string(buffer, 0, bytesReceived) << endl;
             //Echo message back to client
             send(clientSocket, buffer, bytesReceived + 1, 0);
         }
-
-//    while(true) {
-//        Sleep(1000);
-//        cout << "1" << endl;
-//    }
     }
+
+    void timer() {
+        while (true) {
+            Sleep(1000);
+            string tmp = "[" + this->thread_id + "]: idle\n";
+            cout << tmp;
+            addMessage(tmp);
+        }
+    }
+
 private:
     void addMessage(string message) {
-            bufferMutex.lock();
-            buffer.push_back(message);
-            bufferMutex.unlock();
+        bufferMutex.lock();
+        buffer.push_back(message);
+        bufferMutex.unlock();
     }
 
     string getStringAddress() {
@@ -76,7 +89,7 @@ private:
 
 class Server {
 private:
-    vector<string> buffer ;
+    vector<string> buffer;
     WSADATA wsData;
     WORD version = MAKEWORD(2, 2);
     SOCKET listeningSocket;
@@ -118,8 +131,8 @@ public:
             }
 
             Connection *connection = new Connection(clientSocket, clientHint.sin_addr.S_un.S_addr, buffer);
-            thread t1(&Connection::clientProcessing,ref(connection));
-            t1.join();
+            thread t1(&Connection::clientProcessing, ref(connection));
+            t1.detach();
         }
         WSACleanup();
     }
@@ -127,12 +140,14 @@ public:
 };
 
 Server *server = new Server();
-void my_handler (int param)
-{
+
+void my_handler(int param) {
+    //TODO: add server distructor
     delete server;
     system("Pause");
     exit(0);
 }
+
 int main() {
     signal(SIGINT, my_handler);
     server->start();
