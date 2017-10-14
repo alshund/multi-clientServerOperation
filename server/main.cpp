@@ -1,6 +1,10 @@
 #include <iostream>
 #include <ws2tcpip.h>
 #include <thread>
+#include <inaddr.h>
+#include <vector>
+#include <hash_map>
+#include <map>
 
 #pragma comment(lib, "ws_32.lib")
 
@@ -8,25 +12,29 @@ using namespace std;
 
 
 class Connection {
-    //TODO: add ref to server in order to get collection
+
     SOCKET clientSocket;
+    u_long address;
 public:
-    Connection(SOCKET clientSocket) : clientSocket(clientSocket) {}
+
+    Connection(SOCKET clientSocket, u_long address) : clientSocket(clientSocket), address(address) {}
 
 public:
     void clientProcessing() {
 
         while (true) {
-            char buffer[5000];
+            string stringBuffer;
+
+            char buffer[4096];
             // string buffer;
-            int bytesReceived = recv(clientSocket, buffer, 5000, 0);
+            int bytesReceived = recv(clientSocket, buffer, 4096, 0);
 
             if (bytesReceived == SOCKET_ERROR) {
                 cerr << "Error in recv()" << endl;
             }
 //
             if (bytesReceived == 0) {
-                cout << "Client disconnected" << endl;
+                cout << "[" << this_thread::get_id() << "]: client " << address << " disconnected" << endl;
                 break;
             }
             cout << "Client> " << string(buffer, 0, bytesReceived) << endl;
@@ -41,8 +49,8 @@ public:
 };
 
 class Server {
-    //TODO: add collection here
 private:
+    vector<string> buffer ;
     WSADATA wsData;
     WORD version = MAKEWORD(2, 2);
     SOCKET listeningSocket;
@@ -85,7 +93,7 @@ public:
 
 //        pthread_t thread;
 //        pthread_create(&thread, NULL, clientProcessing, &thread);
-            Connection *connection = new Connection(clientSocket);
+            Connection *connection = new Connection(clientSocket, clientHint.sin_addr.S_un.S_addr);
             thread t1(&Connection::clientProcessing,ref(connection));
             t1.join();
         }
@@ -93,9 +101,16 @@ public:
     }
 };
 
+void kek(vector< map <u_long, string> > buffer) {
+    string line = "mamapapaprivet";
+    buffer[]
+}
+
 int main() {
-    Server *server = new Server();
-    server->start();
+//    Server *server = new Server();
+//    server->start();
+    vector < map < u_long, string > > buffer;
+
     return 0;
 }
 
