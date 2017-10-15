@@ -1,11 +1,3 @@
-#include <iostream>
-#include <ws2tcpip.h>
-#include <thread>
-#include <functional>
-#include <sstream>
-#include <vector>
-#include <mutex>
-
 #include "server/Server.h"
 
 #pragma comment(lib, "ws_32.lib")
@@ -23,9 +15,10 @@ void my_handler(int param) {
 }
 
 int main() {
-//    server->start();
-    auto& server = Server::getInstance();
+
     signal(SIGINT, my_handler);
+
+    auto& server = Server::getInstance();
 
     server.start();
 
