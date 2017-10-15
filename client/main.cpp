@@ -63,7 +63,7 @@ int main() {
 
     int random = getRandomSleepTime();
     cout << random << endl;
-    sleep(getRandomSleepTime());
+    sleep(random);
     cout << userInput << endl;
 
     int sendResult = send(clientSocket, userInput.c_str(), userInput.size() + 1, 0);
