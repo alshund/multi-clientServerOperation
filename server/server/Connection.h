@@ -5,41 +5,35 @@
 #ifndef SERVER_CONNECTION_H
 #define SERVER_CONNECTION_H
 
+#include <ws2tcpip.h>
+
+#include <iostream>
 #include <mutex>
 #include <chrono>
-
-#include "Server.h"
+#include <thread>
+#include <vector>
 
 class Connection {
 private:
 
     SOCKET clientSocket;
-
     unsigned long clientAddress;
-
-    std::thread::id  threadId;
-
-    std::vector <std::string> &buffer;
 
     bool isActive = true;
 
-    std::mutex bufferMutex;
-
     void addMessage(std::string message);
-
     void threadTimer(std::string threadId);
 
     std::string addressToString();
-
     std::string idToString();
 
 public:
 
-    Connection(SOCKET clientSocket, unsigned long clientAddress, std::vector<std::string> &buffer);
-
+    Connection(SOCKET clientSocket, unsigned long clientAddress);
     virtual ~Connection();
 
     void clientProcessing();
+    void setIsActive(bool isActive);
 
 };
 

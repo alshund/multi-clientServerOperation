@@ -5,7 +5,6 @@
 #include <inaddr.h>
 
 #include "Server.h"
-#include "Connection.h"
 
 #pragma comment(lib, "ws_32.lib")
 
@@ -17,6 +16,7 @@ Server::Server() {
 }
 
 Server::~Server() {
+
     closesocket(listeningSocket);
     WSACleanup();
 }
@@ -63,8 +63,31 @@ void Server::start() {
             std::cerr << "Client could't connect, Err #" << WSAGetLastError() << std::endl;
         }
 
-        Connection *connection = new Connection(clientSocket, clientSocketHint.sin_addr.S_un.S_addr, buffer);
+        Connection *connection = new Connection(clientSocket, clientSocketHint.sin_addr.S_un.S_addr);
         std::thread connectionThread (&Connection::clientProcessing, std::ref(connection));
+        connections.push_back(connection);
         connectionThread.detach();
+    }
+}
+
+void Server::addMessage(std::string message) {
+    mutex.lock();
+    buffer.push_back(message);
+    mutex.unlock();
+}
+
+void Server::deleteConnection(Connection *connection) {
+    mutex.lock();
+    for (std::vector<Connection*>::iterator eraseIterator = connections.begin(); eraseIterator < connections.end(); eraseIterator++) {
+        if (*eraseIterator == connection) {
+            connections.erase(eraseIterator);
+        }
+    }
+    mutex.unlock();
+}
+
+void Server::shutDownAllConnections() {
+    for (int connectionIndex = 0; connectionIndex < connections.size(); connectionIndex++) {
+        connections[connectionIndex]->setIsActive(false);
     }
 }

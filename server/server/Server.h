@@ -10,23 +10,22 @@
 #include <iostream>
 #include <vector>
 #include <thread>
+#include "Connection.h"
 
 class Server {
 
 private:
 
     WSADATA winSockData;
-
     const int VERSION = 2;
-
     const int MODIFICATION = 2;
-
     WORD winsSockVersion = MAKEWORD(VERSION, MODIFICATION);
-
     const int PORT = 5223;
-
     SOCKET listeningSocket;
 
+    std::mutex mutex;
+
+    std::vector <Connection*> connections;
     std::vector <std::string> buffer;
 
     Server();
@@ -50,6 +49,12 @@ public:
     static Server& getInstance();
 
     void start();
+
+    void addMessage(std::string message);
+
+    void deleteConnection(Connection *connection);
+
+    void shutDownAllConnections();
 
 };
 
