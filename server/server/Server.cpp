@@ -100,8 +100,8 @@ void Server::start() {
         }
 
         Connection *connection = new Connection(clientSocket, clientSocketHint.sin_addr.S_un.S_addr);
-        std::thread connectionThread (&Connection::clientProcessing, std::ref(connection));
         connections.push_back(connection);
+        std::thread connectionThread (&Connection::clientProcessing, std::ref(connection));
         connectionThread.detach();    }
 }
 

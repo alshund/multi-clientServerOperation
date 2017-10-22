@@ -1,0 +1,1 @@
+start C:\Users\shund\CLionProjects\multi-clientServerOperation\server\cmake-build-debug\Server.exe
