@@ -75,7 +75,7 @@ void Server::dumpLog() {
 
     std::stringstream stringStream;
     stringStream << current_work_dir << "\\tmp"<<"\\"<<system_time.wDay<<"_"<<system_time.wMonth<<"_"
-                 << system_time.wYear<<" at_time "<<system_time.wHour<<":"<<system_time.wMinute<<" log.txt";
+                 << system_time.wYear<<" at time "<<system_time.wHour<<"_"<<system_time.wMinute<<" log.txt";
     std::string filePath = stringStream.str();
 
 
