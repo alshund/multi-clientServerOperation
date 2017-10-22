@@ -7,9 +7,8 @@
 #include "Connection.h"
 #include "Server.h"
 
-Connection::Connection(SOCKET clientSocket, unsigned long clientAddress) : clientSocket(clientSocket),
-                                                                           clientAddress(clientAddress) {
-}
+Connection::Connection(SOCKET &clientSocket, unsigned long clientAddress) : clientSocket(clientSocket),
+                                                                            clientAddress(clientAddress) {}
 
 Connection::~Connection() {
 
@@ -60,27 +59,25 @@ void Connection::clientProcessing() {
         char clientMessage[100];
         int bytesReceived = recv(clientSocket, clientMessage, 100, 0);
         if (bytesReceived == SOCKET_ERROR) {
-            std::cerr << "Data could't received, Err #" << WSAGetLastError() << std::endl;
-        }
-
-        if (bytesReceived == 0) {
+            setIsActive(false);
+        } else if (bytesReceived == 0) {
             setIsActive(false);
             connectionMessage = "[" + idToString() + "]: client " + addressToString() + " disconnected\n";
             std::cout << connectionMessage;
             addMessage(connectionMessage);
-            isActive = false;
-            break;
         } else {
             std::cout << "[" + idToString() + "]: " << std::string(clientMessage, 0, bytesReceived) << std::endl;
             addMessage(std::string(clientMessage, 0, bytesReceived));
             send(clientSocket, clientMessage, bytesReceived + 1, 0);
         }
-
     }
     delete this;
-
 }
 
 void Connection::setIsActive(bool isActive) {
     Connection::isActive = isActive;
+}
+
+void Connection::closeSocket() {
+    closesocket(clientSocket);
 }

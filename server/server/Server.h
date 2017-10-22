@@ -23,6 +23,8 @@ private:
     const int PORT = 5223;
     SOCKET listeningSocket;
 
+    bool isActive;
+
     std::mutex mutex;
 
     std::vector <Connection*> connections;

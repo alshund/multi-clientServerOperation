@@ -60,9 +60,8 @@ void Server::interruption_handler(int param) {
 }
 
 void Server::stopServer(){
-//    shutDownAllConnections();
-//    closesocket(listeningSocket);
-//    WSACleanup();
+    isActive = false;
+    shutDownAllConnections();
     dumpLog();
 }
 
@@ -90,9 +89,9 @@ void Server::dumpLog() {
 }
 
 void Server::start() {
-
     listen(listeningSocket, SOMAXCONN);
-    while (true) {
+    isActive = true;
+    while (isActive) {
         sockaddr_in clientSocketHint;
         int clientSocketHintSize = sizeof(clientSocketHint);
         SOCKET  clientSocket = accept(listeningSocket, (sockaddr *) &clientSocketHint, &clientSocketHintSize);
@@ -103,8 +102,7 @@ void Server::start() {
         Connection *connection = new Connection(clientSocket, clientSocketHint.sin_addr.S_un.S_addr);
         std::thread connectionThread (&Connection::clientProcessing, std::ref(connection));
         connections.push_back(connection);
-        connectionThread.detach();
-    }
+        connectionThread.detach();    }
 }
 
 void Server::addMessage(std::string message) {
@@ -124,7 +122,9 @@ void Server::deleteConnection(Connection *connection) {
 }
 
 void Server::shutDownAllConnections() {
+    mutex.lock();
     for (int connectionIndex = 0; connectionIndex < connections.size(); connectionIndex++) {
-        connections[connectionIndex]->setIsActive(false);
+        connections[connectionIndex]->closeSocket();
     }
+    mutex.unlock();
 }
