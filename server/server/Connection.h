@@ -29,11 +29,13 @@ private:
 
 public:
 
-    Connection(SOCKET clientSocket, unsigned long clientAddress);
+    Connection(SOCKET &clientSocket, unsigned long clientAddress);
+
     virtual ~Connection();
 
     void clientProcessing();
     void setIsActive(bool isActive);
+    void closeSocket();
 
 };
 

@@ -78,6 +78,8 @@ int main() {
         }
     }
 
+    random = getRandomSleepTime();
+    sleep(random);
     //Gracefully close down everything
     closesocket(clientSocket);
     WSACleanup();
