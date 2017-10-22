@@ -70,8 +70,12 @@ void Server::dumpLog() {
     char current_work_dir[FILENAME_MAX];
     _getcwd(current_work_dir, sizeof(current_work_dir));
 
+    SYSTEMTIME system_time;
+    GetSystemTime(&system_time);
+
     std::stringstream stringStream;
-    stringStream << current_work_dir << "\\tmp"<<"\\log.txt";
+    stringStream << current_work_dir << "\\tmp"<<"\\"<<system_time.wDay<<"_"<<system_time.wMonth<<"_"
+                 << system_time.wYear<<" at_time "<<system_time.wHour<<":"<<system_time.wMinute<<" log.txt";
     std::string filePath = stringStream.str();
 
 
