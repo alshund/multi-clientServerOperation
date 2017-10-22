@@ -17,6 +17,7 @@ Server::Server() {
 }
 
 Server::~Server() {
+
     closesocket(listeningSocket);
     WSACleanup();
 }
@@ -51,7 +52,12 @@ Server& Server::getInstance() {
     static Server server;
     return server;
 }
-
+void Server::interruption_handler(int param) {
+//    delete getInstance();
+//    std::cout << "kek" << std::endl;
+    system("Pause");
+    exit(0);
+}
 void Server::start() {
 
     listen(listeningSocket, SOMAXCONN);

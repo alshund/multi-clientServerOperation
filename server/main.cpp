@@ -14,18 +14,12 @@ using namespace std;
 
 BOOL WINAPI ConsoleHandler(DWORD);
 
-void my_handler(int param) {
-    //TODO: add server distructor
-//    delete server;
-    std::cout << "kek" << std::endl;
-    system("Pause");
-    exit(0);
-}
 
 int main() {
 //    server->start();
+ //   std::cout << "kek" << std::endl;
     auto& server = Server::getInstance();
-    signal(SIGINT, my_handler);
+    signal(SIGINT, Server::interruption_handler);
 
     server.start();
 

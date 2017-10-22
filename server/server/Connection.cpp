@@ -63,12 +63,14 @@ void Connection::clientProcessing() {
             connectionMessage = "[" + idToString() + "]: client " + addressToString() + " disconnected\n";
             std::cout << connectionMessage << std::endl;
             addMessage(connectionMessage);
-            delete this;
+
             break;
+        } else{
+            std::cout << "[" + idToString() + "]: " << std::string(clientMessage, 0, bytesReceived) << std::endl;
+            addMessage(std::string(clientMessage, 0, bytesReceived));
+            send(clientSocket, clientMessage, bytesReceived + 1, 0);
         }
 
-        std::cout << "[" + idToString() + "]: " << std::string(clientMessage, 0, bytesReceived) << std::endl;
-        addMessage(std::string(clientMessage, 0, bytesReceived));
-        send(clientSocket, clientMessage, bytesReceived + 1, 0);
     }
+    delete this;
 }

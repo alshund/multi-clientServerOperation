@@ -51,6 +51,9 @@ public:
 
     void start();
 
+
+    void static interruption_handler(int param);
+
 };
 
 #endif //SERVER_SERVER_H
