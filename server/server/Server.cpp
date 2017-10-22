@@ -3,6 +3,9 @@
 //
 
 #include <inaddr.h>
+#include <direct.h>
+#include <fstream>
+#include <sstream>
 
 #include "Server.h"
 
@@ -57,14 +60,29 @@ void Server::interruption_handler(int param) {
 }
 
 void Server::stopServer(){
-    shutDownAllConnections();
-    closesocket(listeningSocket);
-    WSACleanup();
+//    shutDownAllConnections();
+//    closesocket(listeningSocket);
+//    WSACleanup();
     dumpLog();
 }
 
 void Server::dumpLog() {
-   // std::cout << GetModuleFileName;
+    char current_work_dir[FILENAME_MAX];
+    _getcwd(current_work_dir, sizeof(current_work_dir));
+
+    std::stringstream stringStream;
+    stringStream << current_work_dir << "\\tmp"<<"\\log.txt";
+    std::string filePath = stringStream.str();
+
+
+    std::ofstream fout;
+    fout.open(filePath);
+    for (int i; i<buffer.size(); i++){
+        fout<<buffer[i];
+    }
+    fout.close();
+    std::cout<<filePath<<std::endl;
+
 }
 
 void Server::start() {
