@@ -5,24 +5,29 @@
 #include <sstream>
 
 #include "Connection.h"
+#include "Server.h"
 
-Connection::Connection(SOCKET clientSocket, unsigned long clientAddress, std::vector<std::string> &buffer)
-        : clientSocket(clientSocket), clientAddress(clientAddress), buffer(buffer) {}
+Connection::Connection(SOCKET clientSocket, unsigned long clientAddress) : clientSocket(clientSocket),
+                                                                           clientAddress(clientAddress) {
+}
 
 Connection::~Connection() {
 
+    auto &server = Server::getInstance();
+    server.deleteConnection(this);
 }
 
 void Connection::addMessage(std::string message) {
-    bufferMutex.lock();
-    buffer.push_back(message);
-    bufferMutex.unlock();
+
+    auto &server = Server::getInstance();
+    server.addMessage(message);
 }
 
 void Connection::threadTimer(std::string threadId) {
+
     std::string stringThreadId = idToString();
     while (isActive) {
-        std::string timerData = "[" +  threadId + "]: idle\n";
+        std::string timerData = "[" + threadId + "]: idle\n";
         std::cout << timerData;
         addMessage(timerData);
         Sleep(1000);
@@ -30,6 +35,7 @@ void Connection::threadTimer(std::string threadId) {
 }
 
 std::string Connection::addressToString() {
+
     std::stringstream stringStream;
     stringStream << clientAddress;
     return stringStream.str();
@@ -47,10 +53,10 @@ void Connection::clientProcessing() {
     std::cout << connectionMessage;
     addMessage(connectionMessage);
 
-    std::thread timerThread (&Connection::threadTimer, this, idToString());
+    std::thread timerThread(&Connection::threadTimer, this, idToString());
     timerThread.detach();
 
-    while (true) {
+    while (isActive) {
         char clientMessage[100];
         int bytesReceived = recv(clientSocket, clientMessage, 100, 0);
         if (bytesReceived == SOCKET_ERROR) {
@@ -58,14 +64,13 @@ void Connection::clientProcessing() {
         }
 
         if (bytesReceived == 0) {
-            isActive = false;
-            TerminateThread(reinterpret_cast<HANDLE>(timerThread.native_handle()), 0);
+            setIsActive(false);
             connectionMessage = "[" + idToString() + "]: client " + addressToString() + " disconnected\n";
-            std::cout << connectionMessage << std::endl;
+            std::cout << connectionMessage;
             addMessage(connectionMessage);
-
+            isActive = false;
             break;
-        } else{
+        } else {
             std::cout << "[" + idToString() + "]: " << std::string(clientMessage, 0, bytesReceived) << std::endl;
             addMessage(std::string(clientMessage, 0, bytesReceived));
             send(clientSocket, clientMessage, bytesReceived + 1, 0);
@@ -73,4 +78,9 @@ void Connection::clientProcessing() {
 
     }
     delete this;
+
+}
+
+void Connection::setIsActive(bool isActive) {
+    Connection::isActive = isActive;
 }
