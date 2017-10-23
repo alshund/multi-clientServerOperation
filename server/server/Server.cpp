@@ -54,6 +54,7 @@ Server& Server::getInstance() {
     return server;
 }
 void Server::interruption_handler(int param) {
+    system("cls");
     getInstance().stopServer();
     system("Pause");
     exit(0);

@@ -15,7 +15,17 @@ int getRandomSleepTime() {
     return sleepTime;
 }
 
-int main() {
+string generateRandomString(){
+    string userInput;
+    srand(time(NULL));
+    int n = rand() % 100;
+    for (int i = 0; i < n; i++) userInput += ar[rand() % (sizeof ar / sizeof(char *))];
+    userInput += "\0";
+    return userInput;
+}
+
+
+int startClient(){
     string ipAddress = "127.0.0.1";
     int port = 5223;
 
@@ -45,13 +55,8 @@ int main() {
 
     //Do-while loop to send and receive data
     char buffer[5000];
-    string userInput;
+    string userInput = generateRandomString();
 
-
-    srand(time(NULL));
-    int n = rand() % 100;
-    for (int i = 0; i < n; i++) userInput += ar[rand() % (sizeof ar / sizeof(char *))];
-    userInput += "\0";
 
     //Connect to server
     int connectResult = connect(clientSocket, (sockaddr *) &hint, sizeof(hint));
@@ -84,4 +89,9 @@ int main() {
     closesocket(clientSocket);
     WSACleanup();
     return 0;
+}
+
+
+int main() {
+    return startClient();
 }
