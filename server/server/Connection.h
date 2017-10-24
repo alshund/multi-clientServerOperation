@@ -17,25 +17,26 @@ class Connection {
 private:
 
     SOCKET clientSocket;
-    unsigned long clientAddress;
+    char *IP;
 
     bool isActive = true;
 
     void addMessage(std::string message);
     void threadTimer(std::string threadId);
 
-    std::string addressToString();
     std::string idToString();
 
 public:
 
-    Connection(SOCKET &clientSocket, unsigned long clientAddress);
+    Connection(SOCKET &clientSocket, char *IP);
 
     virtual ~Connection();
 
     void clientProcessing();
     void setIsActive(bool isActive);
     void closeSocket();
+
+    std::string getCurrentTime();
 
 };
 

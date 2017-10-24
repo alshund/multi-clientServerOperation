@@ -99,8 +99,8 @@ void Server::start() {
         if (clientSocket == INVALID_SOCKET) {
             std::cerr << "Client could't connect, Err #" << WSAGetLastError() << std::endl;
         }
-
-        Connection *connection = new Connection(clientSocket, clientSocketHint.sin_addr.S_un.S_addr);
+        char *clientIP = inet_ntoa(clientSocketHint.sin_addr);
+        Connection *connection = new Connection(clientSocket, clientIP);
         connections.push_back(connection);
         std::thread connectionThread (&Connection::clientProcessing, std::ref(connection));
         connectionThread.detach();    }

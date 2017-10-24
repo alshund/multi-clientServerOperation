@@ -3,12 +3,12 @@
 //
 
 #include <sstream>
+#include <inaddr.h>
 
 #include "Connection.h"
 #include "Server.h"
 
-Connection::Connection(SOCKET &clientSocket, unsigned long clientAddress) : clientSocket(clientSocket),
-                                                                            clientAddress(clientAddress) {}
+Connection::Connection(SOCKET &clientSocket, char *IP) : clientSocket(clientSocket), IP(IP) {}
 
 Connection::~Connection() {
 
@@ -24,20 +24,12 @@ void Connection::addMessage(std::string message) {
 
 void Connection::threadTimer(std::string threadId) {
 
-    std::string stringThreadId = idToString();
     while (isActive) {
-        std::string timerData = "[" + threadId + "]: idle\n";
+        std::string timerData = getCurrentTime() + "[" + threadId + "]: " + IP + " idle\n";
         std::cout << timerData;
         addMessage(timerData);
         Sleep(1000);
     }
-}
-
-std::string Connection::addressToString() {
-
-    std::stringstream stringStream;
-    stringStream << clientAddress;
-    return stringStream.str();
 }
 
 std::string Connection::idToString() {
@@ -48,7 +40,7 @@ std::string Connection::idToString() {
 
 void Connection::clientProcessing() {
 
-    std::string connectionMessage = "[" + idToString() + "]: accept new client " + addressToString() + "\n";
+    std::string connectionMessage = getCurrentTime() + "[" + idToString() + "]: accept new client " + IP + "\n";
     std::cout << connectionMessage;
     addMessage(connectionMessage);
 
@@ -56,13 +48,13 @@ void Connection::clientProcessing() {
     timerThread.detach();
 
     while (isActive) {
-        char clientMessage[100];
-        int bytesReceived = recv(clientSocket, clientMessage, 100, 0);
+        char clientMessage[10000];
+        int bytesReceived = recv(clientSocket, clientMessage, 1000, 0);
         if (bytesReceived == SOCKET_ERROR) {
             setIsActive(false);
         } else if (bytesReceived == 0) {
             setIsActive(false);
-            connectionMessage = "[" + idToString() + "]: client " + addressToString() + " disconnected\n";
+            connectionMessage = getCurrentTime() + "[" + idToString() + "]: client " + IP + " disconnected\n";
             std::cout << connectionMessage;
             addMessage(connectionMessage);
         } else {
@@ -80,4 +72,12 @@ void Connection::setIsActive(bool isActive) {
 
 void Connection::closeSocket() {
     closesocket(clientSocket);
+}
+
+std::string Connection::getCurrentTime() {
+    SYSTEMTIME system_time;
+    std::stringstream stream;
+    GetSystemTime(&system_time);
+    stream << "[" << system_time.wHour << ":" << system_time.wMinute << ":" << system_time.wSecond << "]";
+    return stream.str();
 }

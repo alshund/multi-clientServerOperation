@@ -2,6 +2,7 @@
 #include <winsock2.h>
 #include <time.h>
 #include <zconf.h>
+#include <inaddr.h>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -28,6 +29,8 @@ string generateRandomString(){
 int startClient(){
     string ipAddress = "127.0.0.1";
     int port = 5223;
+//    std::cout << "Input IP address" << std::endl;
+//    cin >> ipAddress;
 
     //Initialize WinSock
     WSADATA wsData;
