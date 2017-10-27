@@ -3,7 +3,6 @@
 //
 
 #include <sstream>
-#include <inaddr.h>
 
 #include "Connection.h"
 #include "Server.h"
@@ -25,7 +24,7 @@ void Connection::addMessage(std::string message) {
 void Connection::threadTimer(std::string threadId) {
 
     while (isActive) {
-        std::string timerData = getCurrentTime() + "[" + threadId + "]: " + IP + " idle\n";
+        std::string timerData = getPreamble() + IP + " idle\n";
         std::cout << timerData;
         addMessage(timerData);
         Sleep(1000);
@@ -40,7 +39,7 @@ std::string Connection::idToString() {
 
 void Connection::clientProcessing() {
 
-    std::string connectionMessage = getCurrentTime() + "[" + idToString() + "]: accept new client " + IP + "\n";
+    std::string connectionMessage = getPreamble() + "accept new client " + IP + "\n";
     std::cout << connectionMessage;
     addMessage(connectionMessage);
 
@@ -54,12 +53,13 @@ void Connection::clientProcessing() {
             setIsActive(false);
         } else if (bytesReceived == 0) {
             setIsActive(false);
-            connectionMessage = getCurrentTime() + "[" + idToString() + "]: client " + IP + " disconnected\n";
+            connectionMessage = getPreamble() + "client " + IP + " disconnected\n";
             std::cout << connectionMessage;
             addMessage(connectionMessage);
         } else {
-            std::cout << "[" + idToString() + "]: " << std::string(clientMessage, 0, bytesReceived) << std::endl;
-            addMessage(std::string(clientMessage, 0, bytesReceived));
+            connectionMessage = getPreamble() + IP + " " + std::string(clientMessage, 0, bytesReceived) + "\n";
+            std::cout << connectionMessage;
+            addMessage(connectionMessage);
             send(clientSocket, clientMessage, bytesReceived + 1, 0);
         }
     }
@@ -72,6 +72,11 @@ void Connection::setIsActive(bool isActive) {
 
 void Connection::closeSocket() {
     closesocket(clientSocket);
+}
+
+std::string Connection::getPreamble() {
+    std::string preamble = getCurrentTime() + "[" + idToString() + "]: ";
+    return preamble;
 }
 
 std::string Connection::getCurrentTime() {

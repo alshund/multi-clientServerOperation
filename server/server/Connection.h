@@ -36,8 +36,8 @@ public:
     void setIsActive(bool isActive);
     void closeSocket();
 
+    std::string getPreamble();
     std::string getCurrentTime();
-
 };
 
 
